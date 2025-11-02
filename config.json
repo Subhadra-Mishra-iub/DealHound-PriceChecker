@@ -1,0 +1,13 @@
+{
+  "price_threshold": 25.0,
+  "email_alerts": {
+    "enabled": true,
+    "smtp_server": "smtp.gmail.com",
+    "smtp_port": 587,
+    "sender_email": "your-email@gmail.com",
+    "recipient_email": "your-email@gmail.com"
+  },
+  "screenshot_on_error": true,
+  "implicit_wait_timeout": 10,
+  "explicit_wait_timeout": 20
+}
