@@ -162,41 +162,77 @@ python dealhound.py --products custom_products.txt --config custom_config.json
 
 ### Console Output
 
+When you run DealHound, you'll see real-time progress for each product:
+
 ```
-Starting DealHound tracker for 3 product(s)...
+Starting DealHound tracker for 2 product(s)...
 ------------------------------------------------------------
 
-[1/3] Tracking: https://www.amazon.com/dp/B08N5WRWNW
-  ✓ Product: Echo Dot (4th Gen) | Smart speaker with Alexa...
-  ✓ Price: $29.99
+[1/2] Tracking: https://www.amazon.com/.../dp/B01DHKOS3O...
+  ✓ Product: Multivitamin for Women – Methylated Womens Multivitamins...
+  ✓ Price: $23.97
   ✓ Availability: In Stock
 
-[2/3] Tracking: https://www.amazon.com/dp/B07H8QMZPV
-  ✓ Product: Fire TV Stick 4K streaming device...
-  ✓ Price: $39.99
+🚨 ALERT: Multivitamin for Women... is below threshold!
+   Current Price: $23.97
+   Threshold: $25.00
+
+[2/2] Tracking: https://www.amazon.com/.../dp/B0DV67FJYB...
+  ✓ Product: Forever 21 Womens Hooded Zip-up Sweater
+  ✓ Price: $11.44
   ✓ Availability: In Stock
 
-[3/3] Tracking: https://www.amazon.com/dp/B08C1W5N87
-  ✓ Product: Ring Video Doorbell – 1080p HD video...
-  ✓ Price: $99.99
-  ✓ Availability: In Stock
+🚨 ALERT: Forever 21 Womens Hooded Zip-up Sweater is below threshold!
+   Current Price: $11.44
+   Threshold: $25.00
 
 ------------------------------------------------------------
 Tracking complete! Results saved to results.csv
 ```
 
+The console shows immediate feedback - you know right away if prices are below your threshold!
+
 ### CSV Output (`results.csv`)
 
+The `results.csv` file tracks all price checks with timestamps, allowing you to see price history over time. Each run appends new data, building a price tracking database.
+
+**Example from actual tracking data:**
 ```csv
 timestamp,product_name,price,availability,url
-2024-01-15 10:30:45,Echo Dot (4th Gen),29.99,In Stock,https://www.amazon.com/dp/B08N5WRWNW
-2024-01-15 10:31:12,Fire TV Stick 4K,39.99,In Stock,https://www.amazon.com/dp/B07H8QMZPV
-2024-01-15 10:31:38,Ring Video Doorbell,99.99,In Stock,https://www.amazon.com/dp/B08C1W5N87
+2025-11-02 18:48:35,Multivitamin for Women...,23.97,In Stock,https://www.amazon.com/...
+2025-11-02 18:49:28,Forever 21 Womens Hooded Zip-up Sweater,11.44,In Stock,https://www.amazon.com/...
 ```
+
+**Key Features:**
+- **Timestamp**: Records exactly when each price check occurred
+- **Price**: Preserved with full decimal precision (23.97, not 23.0)
+- **Availability**: Tracks stock status (In Stock/Out of Stock)
+- **URL**: Links back to the original product page
+
+This CSV format makes it easy to:
+- Track price changes over time
+- Import into Excel/Google Sheets for analysis
+- Create price history charts
+- Identify best times to buy
+
+## Working Example
+
+The repository includes a `results.csv` file with real tracking data from actual Amazon products:
+
+- **Multivitamin for Women**: Tracked at $23.97 on Nov 2, 2025
+- **Forever 21 Sweater**: Tracked at $11.44 on Nov 2, 2025
+
+This demonstrates the system working with:
+- ✅ Full decimal precision (23.97 preserved correctly)
+- ✅ Timestamps for price history tracking
+- ✅ Product name extraction from Amazon pages
+- ✅ Availability status detection
+
+You can open `results.csv` in Excel or Google Sheets to see the tracked data and analyze price patterns over time.
 
 ## Testing
 
-Run the test suite:
+Run the test suite to verify everything works:
 
 ```bash
 pytest tests/test_dealhound.py -v
@@ -208,6 +244,8 @@ The tests cover:
 - Price threshold checking
 - Data validation
 - Mocked extraction logic
+
+All tests should pass, confirming the core functionality works correctly.
 
 ## Configuration Reference
 
@@ -238,18 +276,31 @@ The tests cover:
 ## Project Structure
 
 ```
-dealhound/
-├── dealhound.py           # Main script
-├── config.json            # Configuration file
-├── products.txt           # Product URLs (one per line)
-├── results.csv            # Generated results file
+DealHound-PriceChecker/
+├── dealhound.py           # Main automation script
+├── config.json            # Settings (threshold, email alerts)
+├── products.txt           # Product URLs to track (one per line)
+├── results.csv            # Price tracking data (appended on each run)
 ├── requirements.txt       # Python dependencies
+├── LICENSE                # MIT License
 ├── README.md              # This file
 ├── .gitignore            # Git ignore rules
-├── screenshots/           # Error screenshots (created automatically)
-└── tests/
-    └── test_dealhound.py  # Test suite
+├── env.example           # Email configuration template
+├── screenshots/           # Error screenshots (auto-created)
+├── tests/
+│   ├── __init__.py
+│   └── test_dealhound.py  # Unit tests
+└── docs/
+    ├── USAGE_GUIDE.md     # How to use DealHound
+    ├── EMAIL_SETUP.md     # Email alert configuration
+    └── TESTING_GUIDE.md   # Testing instructions
 ```
+
+**Key Files:**
+- `dealhound.py`: Core automation logic with Selenium
+- `results.csv`: Contains actual tracking data with timestamps (see repo for sample data)
+- `config.json`: Customize price thresholds and email settings
+- `products.txt`: Simple text file - just add URLs one per line
 
 ## Future Enhancements
 
@@ -294,11 +345,31 @@ These challenges taught me a lot about robust web scraping - always have fallbac
 
 ## License
 
-This project is provided as-is for educational purposes. Feel free to use and modify it for learning and personal projects.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+You are free to:
+- Use the code for personal or commercial projects
+- Modify and adapt it to your needs
+- Distribute and share it
+
+The MIT License is one of the most permissive open-source licenses, allowing maximum freedom while providing minimal restrictions.
 
 ## Contributing
 
 Contributions, issues, and feature requests are welcome! This is a learning project, so feel free to experiment and share improvements.
+
+---
+
+## About the Data
+
+The `results.csv` file included in this repository contains real tracking data from live Amazon products. This serves as proof that the system works correctly:
+
+- Prices are extracted with full decimal precision
+- Timestamps are accurate and sequential
+- Product names are correctly captured
+- Availability status is properly detected
+
+Each time you run DealHound, new rows are appended to `results.csv`, building a price history database that you can analyze in Excel, Python (pandas), or any data analysis tool.
 
 ---
 
