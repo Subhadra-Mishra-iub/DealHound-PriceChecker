@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-"""
-DealHound - Automated Price Tracker
-Monitors product prices and availability from e-commerce websites.
-"""
 
 import json
 import csv
@@ -27,26 +23,19 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 
-# Load environment variables
 load_dotenv()
 
 
 class PriceTracker:
-    """Main class for tracking product prices."""
-    
     def __init__(self, config_path: str = "config.json", headless: bool = False):
-        """Set up the tracker with config file."""
         self.config = self._load_config(config_path)
         self.headless = headless
         self.results_file = "results.csv"
         self.screenshots_dir = Path("screenshots")
         self.screenshots_dir.mkdir(exist_ok=True)
-        
-        # Initialize CSV file with headers if it doesn't exist
         self._initialize_csv()
     
     def _load_config(self, config_path: str) -> Dict:
-        """Load configuration from JSON file."""
         try:
             with open(config_path, 'r') as f:
                 return json.load(f)
@@ -60,14 +49,12 @@ class PriceTracker:
             }
     
     def _initialize_csv(self):
-        """Create CSV file with headers if it doesn't exist."""
         if not os.path.exists(self.results_file):
             with open(self.results_file, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f)
                 writer.writerow(['timestamp', 'product_name', 'price', 'availability', 'url'])
     
     def _setup_driver(self) -> webdriver.Chrome:
-        """Configure and return Chrome WebDriver instance."""
         chrome_options = Options()
         
         if self.headless:
@@ -78,8 +65,6 @@ class PriceTracker:
         chrome_options.add_argument('--disable-blink-features=AutomationControlled')
         chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
         chrome_options.add_experimental_option('useAutomationExtension', False)
-        
-        # Set user agent to appear more like a regular browser
         chrome_options.add_argument('user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
         
         service = Service(ChromeDriverManager().install())
@@ -89,7 +74,6 @@ class PriceTracker:
         return driver
     
     def _extract_amazon_product(self, driver: webdriver.Chrome, url: str) -> Optional[Dict]:
-        """Extract product info from Amazon page. Tries multiple selectors since Amazon changes their HTML often."""
         wait_timeout = self.config.get("explicit_wait_timeout", 20)
         wait = WebDriverWait(driver, wait_timeout)
         
@@ -98,7 +82,6 @@ class PriceTracker:
             price = None
             availability = "Unknown"
             
-            # Get product name - tried a few selectors that usually work
             name_selectors = [
                 "span#productTitle",
                 "h1.a-size-large",
@@ -120,7 +103,6 @@ class PriceTracker:
                 print(f"Warning: Could not extract product name from {url}")
                 return None
             
-            # Try to get the price - Amazon shows it in different ways
             price_selectors = [
                 "span.a-price-whole",
                 "span.a-offscreen",
@@ -137,7 +119,6 @@ class PriceTracker:
                     if price_elements:
                         price_text = price_elements[0].text.strip()
                         
-                        # Sometimes Amazon splits price into whole and cents separately
                         try:
                             price_fraction = driver.find_element(By.CSS_SELECTOR, "span.a-price-fraction")
                             if price_fraction:
@@ -146,7 +127,6 @@ class PriceTracker:
                         except NoSuchElementException:
                             pass
                         
-                        # Clean up the price string and extract the number
                         price_text = price_text.replace('$', '').replace(',', '').strip()
                         if price_text:
                             try:
@@ -154,7 +134,6 @@ class PriceTracker:
                                 price_match = re.search(r'(\d+\.?\d*)', price_text)
                                 if price_match:
                                     price_value = float(price_match.group(1))
-                                    # Make sure it's a reasonable price
                                     if price_value > 0 and price_value < 1000000:
                                         price = price_value
                                         break
@@ -163,7 +142,6 @@ class PriceTracker:
                 except (NoSuchElementException, IndexError):
                     continue
             
-            # Check availability
             availability_selectors = [
                 "#availability span",
                 "#availability",
@@ -185,7 +163,6 @@ class PriceTracker:
                 except NoSuchElementException:
                     continue
             
-            # Default to "In Stock" if no explicit availability found but price exists
             if availability == "Unknown" and price:
                 availability = "In Stock"
             
@@ -203,7 +180,6 @@ class PriceTracker:
             return None
     
     def _take_screenshot(self, driver: webdriver.Chrome, url: str):
-        """Take a screenshot and save it with a descriptive filename."""
         try:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             safe_url = url.replace("https://", "").replace("http://", "").replace("/", "_")[:50]
@@ -215,18 +191,15 @@ class PriceTracker:
             print(f"Failed to take screenshot: {str(e)}")
     
     def _save_result(self, product_data: Dict):
-        """Append product data to CSV file."""
         if not product_data:
             return
         
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        # Handle None prices and make sure we always show 2 decimals
         price_value = product_data.get('price')
         if price_value is None:
             price_str = 'N/A'
         else:
-            # Always format to 2 decimals (23.97 not 23.0)
             price_str = f"{float(price_value):.2f}"
         
         with open(self.results_file, 'a', newline='', encoding='utf-8') as f:
@@ -240,7 +213,6 @@ class PriceTracker:
             ])
     
     def _check_price_threshold(self, product_data: Dict):
-        """Check if price is below threshold and send alert if needed."""
         price = product_data.get('price')
         if price is None:
             return
@@ -257,7 +229,6 @@ class PriceTracker:
                 self._send_email_alert(product_data, price, threshold)
     
     def _send_email_alert(self, product_data: Dict, price: float, threshold: float):
-        """Send email alert for price drop."""
         email_config = self.config.get("email_alerts", {})
         
         sender_email = os.getenv("EMAIL_SENDER") or email_config.get("sender_email", "")
@@ -303,7 +274,6 @@ class PriceTracker:
             print(f"   ✗ Failed to send email alert: {str(e)}")
     
     def track_products(self, products_file: str = "products.txt"):
-        """Main method to track all products from the input file."""
         if not os.path.exists(products_file):
             print(f"Error: Products file '{products_file}' not found.")
             return
@@ -328,11 +298,9 @@ class PriceTracker:
                 try:
                     driver.get(url)
                     
-                    # Small delay to let page fully load (we still use explicit waits primarily)
                     import time
                     time.sleep(2)
                     
-                    # Extract product data based on domain
                     if "amazon" in url.lower():
                         product_data = self._extract_amazon_product(driver, url)
                     else:
@@ -367,7 +335,6 @@ class PriceTracker:
 
 
 def main():
-    """Entry point for command-line execution."""
     parser = argparse.ArgumentParser(
         description="DealHound - Automated Price Tracker",
         formatter_class=argparse.RawDescriptionHelpFormatter
